@@ -6,7 +6,7 @@
 //    If you do not agree to this license, do not download, install,
 //    copy or use the software.
 //
-//  Copyright (c) 2015, vLava.
+//  Copyright (c) 2015, vLava, balaDin.
 //  All rights reserved.
 //
 //  Redistribution and use in source and binary forms, with or without
@@ -69,6 +69,7 @@ void detectAndDisplayAndAlarm( Mat frame );
  int EELogoNum = 0;
  int EELogoNum_TMP = 0;
  int mode = 1;
+ int pauseFlag = 0;
 
  string window_name = "Capture - YO detection";
  RNG rng(12345);
@@ -107,13 +108,13 @@ void detectAndDisplayAndAlarm( Mat frame );
        //If a new pedestrian is detected, send alarm msg to parse server
        if(PedAlarm.trigger==1 && PedAlarm.status==1)
        {
-
+            printf("new pedestrian is detected!!\n");
        }
 
        //If a new pedestrian is detected, send alarm msg to parse server
        if(EELogoAlarm.trigger==1 && EELogoAlarm.status==1)
        {
-       
+            printf("logo number is changed!!\n");
        }
 
        int c = waitKey(10);
@@ -127,14 +128,33 @@ void detectAndDisplayAndAlarm( Mat frame );
 	   else if((char)c == '1')//Pedestrian detection
 	   {
 			mode = 1;
+			printf("Pedestrian detection!!\n");
 	   }
 	   else if((char)c == '2')//Logo detection
 	   {
 			mode = 2;
+			printf("Logo detection!!\n");
 	   }
 	   else if((char)c == '3')//Logo detection, something invade
 	   {
 			mode = 3;
+			printf("Logo detection, something invade!!\n");
+	   }
+	   else if((char)c == 'p')//Pause
+	   {
+			if(pauseFlag == 1)
+			{
+				mode = 1;
+				printf("continue!!   pedestrian detection starts!!\n");
+				pauseFlag = 0;
+			}
+			else
+			{	
+				mode = 0;
+				pauseFlag = 1;
+				printf("pause!!\n");
+				continue;
+			}
 	   }
      }
    }
