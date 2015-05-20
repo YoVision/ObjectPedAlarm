@@ -128,16 +128,19 @@ void detectAndDisplayAndAlarm( Mat frame );
 	   else if((char)c == '1')//Pedestrian detection
 	   {
 			mode = 1;
+			pauseFlag = 0;
 			printf("Pedestrian detection!!\n");
 	   }
 	   else if((char)c == '2')//Logo detection
 	   {
 			mode = 2;
+			pauseFlag = 0;
 			printf("Logo detection!!\n");
 	   }
 	   else if((char)c == '3')//Logo detection, something invade
 	   {
 			mode = 3;
+			pauseFlag = 0;
 			printf("Logo detection, something invade!!\n");
 	   }
 	   else if((char)c == 'p')//Pause
@@ -145,8 +148,8 @@ void detectAndDisplayAndAlarm( Mat frame );
 			if(pauseFlag == 1)
 			{
 				mode = 1;
-				printf("continue!!   pedestrian detection starts!!\n");
 				pauseFlag = 0;
+				printf("continue!!   pedestrian detection starts!!\n");
 			}
 			else
 			{	
