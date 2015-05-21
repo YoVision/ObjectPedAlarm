@@ -6,7 +6,7 @@
 //    If you do not agree to this license, do not download, install,
 //    copy or use the software.
 //
-//  Copyright (c) 2015, vLava, balaDin.
+//  Copyright (c) 2015, vLava, balaDin, where.
 //  All rights reserved.
 //
 //  Redistribution and use in source and binary forms, with or without
@@ -68,6 +68,10 @@ void detectAndDisplayAndAlarm( Mat frame );
  int EEInitFlag = 0;
  int EELogoNum = 0;
  int EELogoNum_TMP = 0;
+ int PedestrianInitFlag = 0;
+ int PedestrianNum = 0;
+ int PedestrianNum_TMP = 0;
+
  int mode = 1;
  int pauseFlag = 0;
 
@@ -123,6 +127,8 @@ void detectAndDisplayAndAlarm( Mat frame );
        {
            EELogoNum = EELogoNum_TMP;
            EEInitFlag=1;
+		   PedestrianNum = PedestrianNum_TMP;
+           PedestrianInitFlag=1;
            printf("YO Init %d\n", EELogoNum);
        }
 	   else if((char)c == '1')//Pedestrian detection
@@ -192,9 +198,13 @@ void detectAndDisplayAndAlarm( Mat frame )
   {
 	pedestrian_cascade.detectMultiScale( frame_gray, Pedestrian, 1.2, 2, 0|CV_HAAR_DO_CANNY_PRUNING, Size(110, 100), Size(220, 200) );
 	
-	//Alarm
 	//Pedestrian
-	if(Pedestrian.size() > 0)
+	  if(Pedestrian.size() < PedestrianNum && PedestrianAlramBuffer < 10 && PedestrianInitFlag==1)
+		  PedestrianAlramBuffer++;
+	  else if (Pedestrian.size() == PedestrianNum && PedestrianAlramBuffer > 0)
+		  PedestrianAlramBuffer--;
+
+	if( PedestrianAlramBuffer > 8 )
 	{
 		if(PedAlarm.status == 0)
 			PedAlarm.trigger=1;
@@ -202,16 +212,18 @@ void detectAndDisplayAndAlarm( Mat frame )
 			PedAlarm.trigger=0;
 
 		PedAlarm.status = 1;
-	  }
-	  else
-	  {
+	}
+	else if( PedestrianAlramBuffer < 3 )
+	{
 		 if(PedAlarm.status == 1)
 			PedAlarm.trigger=1;
 		 else
 			PedAlarm.trigger=0;
 
 		 PedAlarm.status = 0;
-	  }
+	}
+
+	PedestrianNum_TMP = Pedestrian.size();
   }
 
   else if(mode == 2 || mode == 3)
