@@ -53,24 +53,23 @@
  }Alarm;
 
  /** Function Headers */
-void ETDetectionInit( Mat frame );
+void BFReset();
 void detectAndDisplayAndAlarm( Mat frame );
 
  /** Global variables */
  String pedestrian_cascade_name = "haarcascade_mcs_upperbody.xml";
- String logo_cascade_name = "haarcascade_EELogo.xml";
+ String logo_cascade_name = "LOGO.xml";
  CascadeClassifier pedestrian_cascade;
  CascadeClassifier logo_cascade;
  Alarm PedAlarm;
  Alarm EELogoAlarm;
- int LogoAlramBuffer;
+ int LogoAlramBuffer=0;
+ int PedestrianAlramBuffer=0;
  
  int EEInitFlag = 0;
  int EELogoNum = 0;
  int EELogoNum_TMP = 0;
  int PedestrianInitFlag = 0;
- int PedestrianNum = 0;
- int PedestrianNum_TMP = 0;
 
  int mode = 1;
  int pauseFlag = 0;
@@ -100,10 +99,12 @@ void detectAndDisplayAndAlarm( Mat frame );
        //-- 3. Apply the classifier to the frame
        if( !frame.empty() )
        { 
-         //Initialize logo number
-
-         //Detection and Alarm  
-         detectAndDisplayAndAlarm( frame );
+         resize(frame, frame, cv::Size(320, 240));
+         //Detection and Alarm
+         if(pauseFlag==0)
+             detectAndDisplayAndAlarm( frame );
+         //-- Show what you got
+         imshow( window_name, frame );
        }
        else
        { printf(" --(!) No captured frame -- Break!"); break; }
@@ -125,44 +126,47 @@ void detectAndDisplayAndAlarm( Mat frame );
        if( (char)c == 'c' ) { break; }
        else if ((char)c == 'i')//Initialize Logo number
        {
-           EELogoNum = EELogoNum_TMP;
-           EEInitFlag=1;
-		   PedestrianNum = PedestrianNum_TMP;
-           PedestrianInitFlag=1;
-           printf("YO Init %d\n", EELogoNum);
+           if(mode==1)
+               PedestrianInitFlag=1;           
+           else
+           {
+               EELogoNum = EELogoNum_TMP;
+               EEInitFlag=1;
+	       printf("YO Init %d\n", EELogoNum);
+	   }
        }
-	   else if((char)c == '1')//Pedestrian detection
+       else if((char)c == '1')//Pedestrian detection
 	   {
 			mode = 1;
-			pauseFlag = 0;
+			BFReset();
 			printf("Pedestrian detection!!\n");
 	   }
-	   else if((char)c == '2')//Logo detection
+       else if((char)c == '2')//Logo detection
 	   {
 			mode = 2;
-			pauseFlag = 0;
-			printf("Logo detection!!\n");
+			BFReset();
+			printf("Invading detection\n");
 	   }
-	   else if((char)c == '3')//Logo detection, something invade
+       else if((char)c == '3')//Logo detection, something invade
 	   {
 			mode = 3;
-			pauseFlag = 0;
-			printf("Logo detection, something invade!!\n");
+			BFReset();
+			printf("Lost item detection\n");
 	   }
-	   else if((char)c == 'p')//Pause
+       else if((char)c == 'p')//Pause
 	   {
 			if(pauseFlag == 1)
 			{
-				mode = 1;
+				//mode = 1;
 				pauseFlag = 0;
-				printf("continue!!   pedestrian detection starts!!\n");
+				printf("continue!!\n");
 			}
 			else
 			{	
-				mode = 0;
+				//mode = 0;
 				pauseFlag = 1;
 				printf("pause!!\n");
-				continue;
+				//continue;
 			}
 	   }
      }
@@ -170,17 +174,17 @@ void detectAndDisplayAndAlarm( Mat frame );
    return 0;
  }
 
-/** Initialization of  **/
-void ETDetectionInit( Mat frame )
+/** Reset Buffer Flags**/
+void BFReset()
 {
-  std::vector<Rect> Logo;
-  Mat frame_gray;
-	
-  resize(frame, frame, cv::Size(320, 240));
-  cvtColor( frame, frame_gray, CV_BGR2GRAY );
-
-  logo_cascade.detectMultiScale( frame_gray, Logo, 1.2, 2, 0|CV_HAAR_DO_CANNY_PRUNING, Size(25, 25), Size(100, 100) );
-  
+    pauseFlag = 0;
+    EELogoAlarm.trigger=0;
+    EELogoAlarm.status=0;
+    EELogoNum=0;
+    PedAlarm.trigger=0;
+    PedAlarm.status=0;
+    LogoAlramBuffer=0;
+    PedestrianAlramBuffer=0;
 }
 
 /** @function detectAndDisplay */
@@ -190,8 +194,10 @@ void detectAndDisplayAndAlarm( Mat frame )
   std::vector<Rect> Logo;
   Mat frame_gray;
 	
-  resize(frame, frame, cv::Size(320, 240));
+  
   cvtColor( frame, frame_gray, CV_BGR2GRAY );
+
+  //equalizeHist(frame_gray,frame_gray);
 
   //select method
   if(mode == 1)
@@ -199,10 +205,10 @@ void detectAndDisplayAndAlarm( Mat frame )
 	pedestrian_cascade.detectMultiScale( frame_gray, Pedestrian, 1.2, 2, 0|CV_HAAR_DO_CANNY_PRUNING, Size(110, 100), Size(220, 200) );
 	
 	//Pedestrian
-	  if(Pedestrian.size() < PedestrianNum && PedestrianAlramBuffer < 10 && PedestrianInitFlag==1)
-		  PedestrianAlramBuffer++;
-	  else if (Pedestrian.size() == PedestrianNum && PedestrianAlramBuffer > 0)
-		  PedestrianAlramBuffer--;
+	if(Pedestrian.size() > 0 && PedestrianAlramBuffer < 10 )
+	    PedestrianAlramBuffer++;
+	else if (Pedestrian.size() == 0 && PedestrianAlramBuffer > 0)
+	    PedestrianAlramBuffer--;
 
 	if( PedestrianAlramBuffer > 8 )
 	{
@@ -222,45 +228,40 @@ void detectAndDisplayAndAlarm( Mat frame )
 
 		 PedAlarm.status = 0;
 	}
-
-	PedestrianNum_TMP = Pedestrian.size();
   }
-
   else if(mode == 2 || mode == 3)
   {
-	logo_cascade.detectMultiScale( frame_gray, Logo, 1.1, 1, 0|CV_HAAR_DO_CANNY_PRUNING, Size(25, 25), Size(100, 100) );
+	logo_cascade.detectMultiScale( frame_gray, Logo, 1.05, 2, 0|CV_HAAR_DO_CANNY_PRUNING, Size(25, 25), Size(100, 100) );
+	EELogoNum_TMP = Logo.size();
 
 	//EE Logo
-	  if(Logo.size() < EELogoNum && LogoAlramBuffer < 10 && EEInitFlag==1)
-		  LogoAlramBuffer++;
-	  else if (Logo.size() == EELogoNum && LogoAlramBuffer > 0)
-		  LogoAlramBuffer--;
+        if(EEInitFlag==1){
+	if(Logo.size() < EELogoNum && LogoAlramBuffer < 10 )
+	  LogoAlramBuffer++;
+	else if (Logo.size() == EELogoNum && LogoAlramBuffer > 0)
+	  LogoAlramBuffer--;
 
-	  if(LogoAlramBuffer > 8)
-	  {
-		  if(EELogoAlarm.status == 0)
-			  EELogoAlarm.trigger=1;
-		  else
-			  EELogoAlarm.trigger=0;
+	if(LogoAlramBuffer > 8)
+	{
+	  if(EELogoAlarm.status == 0)
+		  EELogoAlarm.trigger=1;
+	  else
+		  EELogoAlarm.trigger=0;
 
-		  EELogoAlarm.status = 1;
-	  }
-	  else if(LogoAlramBuffer < 3)
-	  {
-		  if(EELogoAlarm.status == 1)
-			  EELogoAlarm.trigger=1;
-		  else
-			  EELogoAlarm.trigger=0;
+	  EELogoAlarm.status = 1;
+	}
+	else if(LogoAlramBuffer < 3)
+	{
+	  if(EELogoAlarm.status == 1)
+		  EELogoAlarm.trigger=1;
+	  else
+		  EELogoAlarm.trigger=0;
 
-		  EELogoAlarm.status = 0;
-	  }
-	  EELogoNum_TMP = Logo.size();
+	  EELogoAlarm.status = 0;
+	}
+        }//if init
+	
   }
-  
-
-  
-  
-  
 
   //Display
   for( size_t i = 0; i < Pedestrian.size(); i++ )
@@ -277,24 +278,24 @@ void detectAndDisplayAndAlarm( Mat frame )
 
   if(PedAlarm.trigger==1 && PedAlarm.status==1 && mode ==1)
   {
+	imwrite("banana.jpg",frame);
 	system("chmod 777 push_Ped.sh");
-    system("./push_LOGO.sh");
+        system("./push_Ped.sh");
   }
   else if(EELogoAlarm.trigger==1 && EELogoAlarm.status==1 && (mode ==2 || mode ==3))    
   {
 	 if(mode ==2)
 	 {
+		 imwrite("banana.jpg",frame);
 		 system("chmod 777 push_LOGO.sh");
 		 system("./push_LOGO.sh");
 	 }
 	 else if(mode ==3)
 	 {
+		 imwrite("banana.jpg",frame);
 		 system("chmod 777 push_ItemLost.sh");
 		 system("./push_ItemLost.sh");
 	 }
   }
  
-
-  //-- Show what you got
-  imshow( window_name, frame );
  }
