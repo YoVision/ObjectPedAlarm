@@ -6,7 +6,7 @@
 //    If you do not agree to this license, do not download, install,
 //    copy or use the software.
 //
-//  Copyright (c) 2015, vLava, balaDin, where.
+//  Copyright (c) 2015, vLava, balaDin, where, Yu-Tong, chaotien @ National Chao-Tung University
 //  All rights reserved.
 //
 //  Redistribution and use in source and binary forms, with or without
